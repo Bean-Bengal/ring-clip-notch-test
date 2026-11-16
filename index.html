@@ -1,0 +1,38 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ring Clip Notch Test</title>
+<style>body{font-family:sans-serif;max-width:640px;margin:0 auto;padding:12px;background:#f4efe6;color:#222}
+#banner{position:sticky;top:0;padding:10px;font-weight:bold;border-radius:6px}
+.pass{background:#bfe8c1}.fail{background:#f3b7b0}
+table{border-collapse:collapse;width:100%;margin:10px 0}td,th{border:1px solid #999;padding:6px;text-align:center}
+.hold{background:#d6f0d0}.slip{background:#eee}
+#twin{margin-top:12px;padding:10px;border-left:6px solid #c22;color:#c22;font-weight:bold;background:#fff}
+button{min-height:44px;padding:0 14px}button:active{background:#ddd}label{display:block;margin:8px 0}</style></head><body>
+<script data-bean-store>(function(){if(typeof location!=='undefined'&&location&&location.protocol==='about:'&&typeof document!=='undefined'&&document.addEventListener){document.addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('a[href^="#"]');if(!a||a.target==='_blank')return;e.preventDefault();try{location.hash=a.getAttribute('href')}catch(x){}},true)}if(typeof window==='undefined')return;try{window.localStorage.getItem('x');return}catch(e){}var d=Object.assign({},window.__BEAN_SAVED||{});function post(){try{parent.postMessage({type:'bean-store',data:d},'*')}catch(e){}}var ls={getItem:function(k){return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null},setItem:function(k,v){d[k]=String(v);post()},removeItem:function(k){delete d[k];post()},clear:function(){d={};post()},key:function(i){return Object.keys(d)[i]||null}};Object.defineProperty(ls,'length',{get:function(){return Object.keys(d).length}});try{Object.defineProperty(window,'localStorage',{value:ls,configurable:true})}catch(e){}})();</script>
+<h1>Ring clip notch test</h1>
+<div id="banner"></div>
+<label>Lens edge thickness (mm): <input id="edge" type="number" step="0.1" value="2.0"></label>
+<label>Grip allowance (mm): <input id="tol" type="number" step="0.1" value="0.3"></label>
+<button id="run">Run test</button>
+<table><thead><tr><th>Notch (mm)</th><th>Result</th></tr></thead><tbody id="rows"></tbody></table>
+<div id="twin"></div>
+<script>
+// holds if notch is narrower than the edge (squeezes) but not by more than tol (would not fit)
+function holds(notch,edge,tol){return notch<edge&&edge-notch<=tol}
+function brokenHolds(notch,edge,tol){return notch<=edge&&edge-notch<=tol}
+function runAll(edge,tol,fn){const out=[];for(let n=10;n<=30;n+=2){const w=n/10;out.push({w,h:fn(w,edge,tol)})}return out}
+function selfTest(){
+ const c=[[1.7,2,.3,true],[1.6,2,.3,false],[2,2,.3,false],[2.1,2,.3,false],[1.8,2,.3,true]];
+ const good=c.every(x=>holds(x[0],x[1],x[2])===x[3]);
+ const twinRejected=!c.every(x=>brokenHolds(x[0],x[1],x[2])===x[3]);
+ return{good,twinRejected}}
+function render(){
+ const e=+document.getElementById('edge').value,t=+document.getElementById('tol').value;
+ const res=runAll(e,t,holds),tw=runAll(e,t,brokenHolds);
+ document.getElementById('rows').innerHTML=res.map(r=>'<tr class="'+(r.h?'hold':'slip')+'"><td>'+r.w.toFixed(1)+'</td><td>'+(r.h?'holds':'slips')+'</td></tr>').join('');
+ const diff=res.filter((r,i)=>r.h!==tw[i].h).map(r=>r.w.toFixed(1));
+ document.getElementById('twin').textContent='RED TWIN: the broken rule (tie counts as holding) disagrees at '+(diff.length?diff.join(', ')+' mm':'no widths with this edge')+'. Holding: '+res.filter(r=>r.h).map(r=>r.w.toFixed(1)).join(', ')+' mm.';
+}
+const s=selfTest(),b=document.getElementById('banner');
+b.className=s.good&&s.twinRejected?'pass':'fail';
+b.textContent=s.good&&s.twinRejected?'Self-test PASS: rule right, broken twin rejected':'Self-test FAIL';
+document.getElementById('run').onclick=render;render();
+</script></body></html>
